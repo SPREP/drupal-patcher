@@ -57,7 +57,11 @@ git stash
 git checkout .
 git checkout $repo_main_branch
 git pull origin $repo_main_branch
-git checkout -b $repo_feature_branch
+if [ `git rev-parse --verify $repo_feature_branch 2>/dev/null` ]
+  git checkout $repo_feature_branch
+then
+  git checkout -b $repo_feature_branch
+fi
 docker compose stop
 docker compose up -d php
 docker compose exec -T --user wodby php /bin/sh -c "cd /var/www/html/$drupal_dir/ && composer update $composer_packages -W"
@@ -66,5 +70,5 @@ git add $drupal_dir
 git commit -m "$commit_message"
 echo "Done!"
 
-# git push origin $repo_feature_branch
-# echo "Pushed branch '$repo_feature_branch'" to repo
+git push origin $repo_feature_branch
+echo "Pushed branch '$repo_feature_branch'" to repo
