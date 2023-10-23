@@ -10,26 +10,26 @@ while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
     -r|--repo)
-      repo="$2"
-      shift; shift
-      ;;
+    repo="$2"
+    shift; shift
+    ;;
     -b|--branch)
-      branch="$2"
-      shift; shift
-      ;;
+    branch="$2"
+    shift; shift
+    ;;
     -d|--dir)
-      directory="$2"
-      shift; shift
-      ;;
+    directory="$2"
+    shift; shift
+    ;;
     -c|--composer)
-      composer="$2"
-      shift; shift
-      ;;
+    composer="$2"
+    shift; shift
+    ;;
     *)
-      usage
-      ;;
+    usage
+    ;;
   esac
-done
+  done
 
 # Validate required arguments
 [ -z "$repo" ] && usage
@@ -45,6 +45,8 @@ current_year=$(date +'%y')
 
 repo_feature_branch="security/patch-$current_month$current_year"
 commit_message="security patch $current_month $current_year"
+
+cd $repo_dir
 
 # Git operations
 git checkout "$repo_main_branch"
@@ -62,14 +64,18 @@ else
 fi
 
 # Docker Compose & Composer commands
+# echo "Stopping docker compose"
 docker compose stop
+# echo "Starting php container"
 docker compose up -d php
+# echo "Patching drupal"
 docker compose exec -T --user wodby php /bin/sh -c "cd /var/www/html/$drupal_dir && composer update $composer_packages -W"
+# echo "Stopping php container"
 docker compose stop
 
 # Git commit & push
 if [[ $(git status | grep 'composer.lock') ]]; then
-  git add composer.lock
+  git add $drupal_dir/composer.lock
   git commit -m "$commit_message"
 fi
 
@@ -79,7 +85,4 @@ mr_url=$(echo "$push_output" | grep -o 'http[s]://[^ ]*')
 # Display and open MR URL
 if [[ $mr_url ]]; then
   echo "Merge Request URL: $mr_url"
-  read -p "Would you like to open it? (y/n): " -n 1 -r
-  echo
-  [[ $REPLY =~ ^[Yy]$ ]] && xdg-open "$mr_url"
 fi
